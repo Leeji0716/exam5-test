@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.w3.org/1999/xhtml" xmlns:sec="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.2/dist/full.min.css" rel="stylesheet" type="text/css"/>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css">
+    <script src="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.js"></script>
+    <script src="https://kit.fontawesome.com/4c7ae19c08.js" crossorigin="anonymous"></script>
+</head>
+<li th:fragment="noteTree(notebookList, targetNotebook)" th:each="notebook : ${notebookList}"
+    th:with="basic='w-[90%] p-[10px]'">
+    <th:block th:if="${!#lists.isEmpty(notebook.children)}"> <!--Children O-->
+        <details open>
+            <summary class="flex p-0"><a th:class="${basic}"
+                                         th:classappend="${notebook.id == targetNotebook.id} ? 'bg-blue-600':''"
+                                         th:href="@{|/books/${notebook.id}?keyword=${paramHandler.keyword}&sort=${paramHandler.sort}|}"
+                                         th:text="${notebook.name}"></a></summary>
+            <ul>
+                <li th:replace="main::noteTree(${notebook.children}, ${targetNotebook})"></li>
+            </ul>
+        </details>
+    </th:block>
+    <th:block th:if="${#lists.isEmpty(notebook.children)}">  <!--children X-->
+        <a th:class="${basic}"
+           th:classappend="${notebook.id == targetNotebook.id} ? 'bg-blue-600' : '' "
+           th:href="@{|/books/${notebook.id}?keyword=${paramHandler.keyword}&sort=${paramHandler.sort}|}" th:text="${notebook.name}"></a>
+    </th:block>
+</li>
+
+<li th:fragment="moveTree(notebookList, targetNotebook)" th:each="notebook : ${notebookList}"
+    th:with="basic='w-[90%] p-[10px]'">
+    <th:block th:if="${!#lists.isEmpty(notebook.children)}"> <!--Children O-->
+        <details open>
+            <summary class="flex p-0">
+                <div class="flex" th:if="${notebook.id != targetNotebook.id and !#lists.contains(targetNotebook.children, notebook)}">
+                    <input type="radio" name="moveTarget" class="radio" th:value="${notebook.id}" checked />
+                    <a th:class="${basic}"
+                       href="javascript:void(0)"
+                       th:text="${notebook.name}"></a>
+                </div>
+            </summary>
+            <ul>
+                <li th:replace="main::moveTree(${notebook.children}, ${targetNotebook})"></li>
+            </ul>
+        </details>
+    </th:block>
+    <th:block th:if="${#lists.isEmpty(notebook.children)}">  <!--children X-->
+        <div class="flex" th:if="${notebook.id != targetNotebook.id and !#lists.contains(targetNotebook.children, notebook)}">
+            <input type="radio" name="moveTarget" class="radio" th:value="${notebook.id}" />
+            <a th:class="${basic}"
+               href="javascript:void(0)" th:text="${notebook.name}"></a>
+        </div>
+    </th:block>
+</li>
+
+<body>
+<div class="bg-yellow-400"
+th:with="notebookList=${mainDataDto.notebookList},
+         targetNotebook=${mainDataDto.targetNotebook},
+         noteList=${mainDataDto.noteList},
+         targetNote=${mainDataDto.targetNote},
+         searchedNotebookList=${mainDataDto.searchedNotebookList},
+         searchedNoteList=${mainDataDto.searchedNoteList}">
+    <div class="bg-blue-300">
+        <a href="/">logo</a>
+    </div>
+    <div class="bg-blue-300">
+        <a href="/signup" class="btn">회원가입</a>
+        <a th:href="@{/logout}" class="btn" sec:authorize="isAuthenticated()">로그아웃</a>
+    </div>
+
+    <div class="bg-red-600 flex">
+        <!--노트북-->
+        <div class="bg-indigo-300 w-[20%]">
+            <!--노트북 출력 시작-->
+            <ul class="menu h-[100%] overflow-scroll">
+                <li th:replace="main::noteTree(${notebookList}, ${targetNotebook})"></li>
+            </ul>
+            <!--노트북 출력 끝-->
+            <!--노트북 관련 기능-->
+            <form th:action="@{|/books/write?keyword=${paramHandler.keyword}&sort=${paramHandler.sort}|}" method="post">
+                <input type="submit" value="추가">
+            </form>
+
+            <form th:action="@{|/groups/${targetNotebook.id}/books/write?keyword=${paramHandler.keyword}&sort=${paramHandler.sort}|}" method="post">
+                <input type="submit" value="하위 노트북 추가">
+            </form>
+
+            <a th:href="@{|/books/${targetNotebook.id}/delete?keyword=${paramHandler.keyword}&sort=${paramHandler.sort}|}" class="btn" th:text="삭제"></a>
+
+            <button class="btn" onclick="renameNotebook.showModal()">이름 변경</button>
+            <dialog id="renameNotebook" class="modal">
+                <div class="modal-box">
+                    <form method="dialog">
+                        <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                    </form>
+                    <h3 class="font-bold text-lg">노트북 이름 변경</h3>
+                    <form th:action="@{|/books/${targetNotebook.id}/update?keyword=${paramHandler.keyword}&sort=${paramHandler.sort}|}" method="post">
+                        <div class="border-2"></div>
+                        <input type="text" class="input" name="name" th:placeholder="${targetNotebook.name}">
+                        <input type="submit" class="btn" value="변경">
+                    </form>
+                </div>
+            </dialog>
+
+            <button class="btn" onclick="moveNotebook.showModal()">노트북 이동</button>
+            <dialog id="moveNotebook" class="modal">
+                <div class="modal-box h-[700px]">
+                    <form method="dialog" class="h-[5%]">
+                        <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                    </form>
+                    <form th:action="@{|/books/${targetNotebook.id}/move?keyword=${paramHandler.keyword}&sort=${paramHandler.sort}|}" method="post" class="h-[95%]">
+                        <ul class="menu h-[80%] overflow-scroll">
+                            <li th:replace="main::moveTree(${notebookList}, ${targetNotebook})"></li>
+                        </ul>
+                        <input type="submit" class="btn h-[5%]" value="이동">
+                    </form>
+                </div>
+            </dialog>
+
+            <label for="searchModal" class="btn">검색</label>
+            <input type="checkbox" id="searchModal" class="modal-toggle" />
+            <div class="modal" role="dialog">
+                <div class="modal-box h-[700px]">
+                    <form action="/" class="flex justify-center gap-5">
+                        <input type="text" name="keyword" class="input" th:value="${paramHandler.keyword}" placeholder="키워드를 입력하세요.">
+                        <input type="hidden" name="isSearchModal" value="true">
+                        <input type="submit" value="검색" class="btn">
+                    </form>
+                    <ul class="menu overflow-scroll h-[80%] inline-block w-[100%]">
+                        <li th:each="notebook : ${searchedNotebookList}">
+                            <div class="flex">
+                                <i class="fa-solid fa-book"></i>
+                                <a th:href="@{|/books/${notebook.id}?keyword=${paramHandler.keyword}&sort=${paramHandler.sort}|}" th:text="${notebook.name}"></a>
+                            </div>
+                        </li>
+                        <li th:each="note : ${searchedNoteList}">
+                            <div class="flex">
+                                <i class="fa-solid fa-note-sticky"></i>
+                                <a th:href="@{|/books/${note.notebook.id}/notes/${note.id}?keyword=${paramHandler.keyword}&sort=${paramHandler.sort}|}" th:text="${note.title}"></a>
+                            </div>
+                        </li>
+                    </ul>
+                    <div class="modal-action h-[10%]">
+                        <label for="searchModal" class="btn">Close!</label>
+                    </div>
+                </div>
+            </div>
+            <!--노트북 관련 기능-->
+        </div>
+        <!--노트북-->
+        <!--노트-->
+        <div class="bg-red-300 w-[20%] h-[800px] text-center ">
+            <!--노트 출력 시작-->
+            <ul class="h-[100%] overflow-scroll">
+                <li th:each="note : ${noteList}" th:class="${note.id == targetNote.id} ? 'bg-blue-600' : ''">
+                    <a th:href="@{|/books/${targetNotebook.id}/notes/${note.id}?keyword=${paramHandler.keyword}&sort=${paramHandler.sort}|}" th:text="${note.title}"></a>
+                </li>
+            </ul>
+            <!--노트 출력 끝-->
+            <!--노트 관련 기능-->
+            <form th:action="@{|/books/${targetNotebook.id}/notes/write?keyword=${paramHandler.keyword}&sort=${paramHandler.sort}|}" method="post">
+                <input type="submit" value="추가">
+            </form>
+            <a th:href="@{|/books/${targetNotebook.id}/notes/${targetNote.id}?keyword=${paramHandler.keyword}&sort=Date|}" class="btn btn-sm btn-outline-secondary">날짜순</a>
+            <a th:href="@{|/books/${targetNotebook.id}/notes/${targetNote.id}?keyword=${paramHandler.keyword}&sort=Title|}" class="btn btn-sm btn-outline-secondary">제목순</a>
+            <!--노트 관련 기능-->
+        </div>
+        <!--노트-->
+        <!--노트 폼-->
+        <div class="bg-green-300 w-[60%]">
+            <form th:action="@{|/books/${targetNotebook.id}/notes/${targetNote.id}/update?keyword=${paramHandler.keyword}&sort=${paramHandler.sort}|}" method="post"
+                  id="updateForm">
+                <div>
+                    <input type="hidden" name="id" th:value="${targetNote.id}">
+                </div>
+                <div>
+                    <input type="text" name="title" th:value="${targetNote.title}">
+                </div>
+                <div>
+                    <textarea id="content" name="content" cols="30" rows="10" th:text="${targetNote.content}"></textarea>
+                </div>
+                <div>
+                    <input type="button" value="수정" onclick="updateForm()">
+                </div>
+            </form>
+            <form th:action="@{|/books/${targetNotebook.id}/notes/${targetNote.id}/delete?keyword=${paramHandler.keyword}&sort=${paramHandler.sort}|}" method="post"
+                  id="deleteForm">
+                <input type="button" value="삭제" onclick="deleteForm();">
+            </form>
+        </div>
+        <!--노트 폼-->
+    </div>
+</div>
+</body>
+<script>
+    var simplemde = new SimpleMDE({element:document.getElementById("content")});
+</script>
+<script>
+    function updateForm() {
+        const form = document.getElementById("updateForm");
+        if (confirm("수정하시겠습니까?")) {
+            form.submit();
+        }
+    }
+
+    function deleteForm() {
+        const form = document.getElementById("deleteForm");
+        if (confirm("삭제하시겠습니까?")) {
+            form.submit();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const isSearchModal = urlParams.get('isSearchModal');
+
+        if (isSearchModal === 'true') {
+            document.getElementById('searchModal').checked = true;
+        }
+    });
+</script>
+</html>
