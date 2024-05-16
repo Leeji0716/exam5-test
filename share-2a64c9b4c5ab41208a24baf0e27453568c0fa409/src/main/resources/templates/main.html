@@ -62,7 +62,9 @@ th:with="notebookList=${mainDataDto.notebookList},
          noteList=${mainDataDto.noteList},
          targetNote=${mainDataDto.targetNote},
          searchedNotebookList=${mainDataDto.searchedNotebookList},
-         searchedNoteList=${mainDataDto.searchedNoteList}">
+         searchedNoteList=${mainDataDto.searchedNoteList},
+         tagList=${mainDataDto.tagList}">
+
     <div class="bg-blue-300">
         <a href="/">logo</a>
     </div>
@@ -133,18 +135,48 @@ th:with="notebookList=${mainDataDto.notebookList},
                         <li th:each="notebook : ${searchedNotebookList}">
                             <div class="flex">
                                 <i class="fa-solid fa-book"></i>
-                                <a th:href="@{|/books/${notebook.id}?keyword=${paramHandler.keyword}&sort=${paramHandler.sort}|}" th:text="${notebook.name}"></a>
+                                <a th:href="@{|/books/${notebook.id}?keyword=${paramHandler.keyword}&sort=${paramHandler.sort}|}"
+                                   th:text="${notebook.name}" class="inline-block w-[100%]"></a>
                             </div>
                         </li>
                         <li th:each="note : ${searchedNoteList}">
                             <div class="flex">
                                 <i class="fa-solid fa-note-sticky"></i>
-                                <a th:href="@{|/books/${note.notebook.id}/notes/${note.id}?keyword=${paramHandler.keyword}&sort=${paramHandler.sort}|}" th:text="${note.title}"></a>
+                                <a th:href="@{|/books/${note.notebook.id}/notes/${note.id}?keyword=${paramHandler.keyword}&sort=${paramHandler.sort}|}"
+                                   th:text="${note.title}" class="inline-block w-[100%]"></a>
                             </div>
                         </li>
                     </ul>
                     <div class="modal-action h-[10%]">
                         <label for="searchModal" class="btn">Close!</label>
+                    </div>
+                </div>
+            </div>
+
+            <label for="tagModal" class="btn">태그</label>
+            <input type="checkbox" id="tagModal" class="modal-toggle" />
+            <div class="modal" role="dialog">
+                <div class="modal-box h-[700px]">
+                    <input type="hidden" name="isTagModal" value="true">
+                    <ul class="h-[30%] border-2 overflow-auto flex flex-wrap gap-2">
+                        <li th:each="tag : ${tagList}">
+                            <form th:action="@{|/notes/${targetNote.id}/tag/${tag.id}?keyword=${paramHandler.keyword}&sort=${paramHandler.sort}&isTagModal=true|}" method="post">
+                                <input type="submit" th:value="${tag.name}"
+                                       th:classappend="${targetTag != null and targetTag.id == tag.id} ? 'bg-blue-600' : ''" class="btn">
+                            </form>
+                        </li>
+                    </ul>
+                    <ul class="menu border-2 overflow-scroll h-[50%] inline-block w-[100%]">
+                        <li th:each="note : ${tagNoteList}">
+                            <div class="flex">
+                                <i class="fa-solid fa-note-sticky"></i>
+                                <a th:href="@{|/books/${note.notebook.id}/notes/${note.id}|}"
+                                   th:text="${note.title}" class="inline-block w-[100%]"></a>
+                            </div>
+                        </li>
+                    </ul>
+                    <div class="modal-action h-[20%]">
+                        <label for="tagModal" class="btn">Close!</label>
                     </div>
                 </div>
             </div>
@@ -190,6 +222,19 @@ th:with="notebookList=${mainDataDto.notebookList},
                   id="deleteForm">
                 <input type="button" value="삭제" onclick="deleteForm();">
             </form>
+            <form th:action="@{|/notes/${targetNote.id}/tags/create|}" method="post">
+                <div>
+                    <input type="text" name="name" class="input" placeholder="tag 입력">
+                    <input type="submit" value="저장" class="btn">
+                </div>
+            </form>
+            <ul>
+                <li th:each="noteTag : ${targetNote.noteTagList}" class="inline-block gap-5">
+                    <form th:action="@{|/notes/${targetNote.id}/tags/${noteTag.id}/delete|}" method="post">
+                        <input type="submit" th:value="${noteTag.tag.name}" class="btn">
+                    </form>
+                </li>
+            </ul>
         </div>
         <!--노트 폼-->
     </div>
@@ -219,6 +264,15 @@ th:with="notebookList=${mainDataDto.notebookList},
 
         if (isSearchModal === 'true') {
             document.getElementById('searchModal').checked = true;
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const isTagModal = urlParams.get('isTagModal');
+
+        if (isTagModal === 'true') {
+            document.getElementById('tagModal').checked = true;
         }
     });
 </script>

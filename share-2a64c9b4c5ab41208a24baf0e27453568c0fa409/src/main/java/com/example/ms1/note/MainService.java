@@ -2,6 +2,8 @@ package com.example.ms1.note;
 
 import com.example.ms1.note.note.Note;
 import com.example.ms1.note.note.NoteService;
+import com.example.ms1.note.note.tag.tag.Tag;
+import com.example.ms1.note.note.tag.tag.TagService;
 import com.example.ms1.note.notebook.Notebook;
 import com.example.ms1.note.notebook.NotebookService;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +18,7 @@ import java.util.List;
 public class MainService {
     private final NoteService noteService;
     private final NotebookService notebookService;
+    private final TagService tagService;
 
     public MainDataDto defaultMainDataDto(String keyword){
         List<Notebook> notebookList = notebookService.getTopNotebookList();
@@ -29,7 +32,9 @@ public class MainService {
         List<Notebook> searchedNotebookList = notebookService.getNotebookListByKeyword(keyword);
         List<Note> searchedNoteList = noteService.getNoteListByKeyword(keyword);
 
-        MainDataDto mainDataDto = new MainDataDto(notebookList, targetNotebook, noteList, targetNote, searchedNotebookList, searchedNoteList);
+        List<Tag> tagList = tagService.getTagList();
+
+        MainDataDto mainDataDto = new MainDataDto(notebookList, targetNotebook, noteList, targetNote, searchedNotebookList, searchedNoteList, tagList);
         return mainDataDto;
     }
 
@@ -48,7 +53,6 @@ public class MainService {
         mainDataDto.setTargetNotebook(targetNotebook);
         mainDataDto.setTargetNote(targetNote);
         mainDataDto.setNoteList(sortedNoteList);
-
         return mainDataDto;
     }
 
